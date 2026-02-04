@@ -37,7 +37,7 @@ jobs:
         run: ssh -F ~/.brev/ssh_config test1-pipeline "echo == OS ==;
           . /etc/os-release;
           echo \$PRETTY_NAME\;
-          echo == GPU / Driver (must work) ==;
+          echo == GPU / Driver ==;
           nvidia-smi
           "
         
