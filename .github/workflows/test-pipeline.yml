@@ -23,8 +23,141 @@ jobs:
       - name: Enter the VM
         run: brev shell test1-pipeline
 
-      - name: Try commands in VM
-        run: ls -a
+      - name: 0. Basic Sanity Checks
+        run: |
+          set -euo pipefail
+          echo "== OS =="
+          . /etc/os-release
+          echo "$PRETTY_NAME"
+
+          echo "== GPU / Driver (must work) =="
+          nvidia-smi
+
+      - name: 1. System dependencies
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y \
+            git curl wget gnupg ca-certificates \
+            build-essential \
+            python3-dev \
+            ninja-build cmake pkg-config
+
+      - name: 2. Remove Ubuntu's nvidia-cuda-toolkit
+        run: |
+          set -euo pipefail
+          sudo apt-get purge -y nvidia-cuda-toolkit || true
+          sudo apt-get autoremove -y || true
+
+      - name: 3. Install CUDA Toolkit 12.4
+        run: |
+          set -euo pipefail
+          UBU_VER="${VERSION_ID//./}"
+          CUDA_REPO_URL="https://developer.download.nvidia.com/compute/cuda/repos/ubuntu${UBU_VER}/x86_64/cuda-keyring_1.1-1_all.deb"
+
+          echo "== Installing CUDA repo keyring from: $CUDA_REPO_URL =="
+          wget -q "$CUDA_REPO_URL" -O /tmp/cuda-keyring.deb
+          sudo dpkg -i /tmp/cuda-keyring.deb
+          sudo apt-get update
+
+          echo "== Installing CUDA toolkit 12.4 =="
+          sudo apt-get install -y cuda-toolkit-12-4
+
+      - name: 4. Make sure we use CUDA 12.4 in PATH
+        run: |
+          set -euo pipefail
+          if ! grep -q "cuda-12.4" ~/.bashrc; then
+            {
+              echo ""
+              echo "# CUDA 12.4 (for GR00T + flash-attn)"
+              echo "export CUDA_HOME=/usr/local/cuda-12.4"
+              echo "export PATH=\$CUDA_HOME/bin:\$PATH"
+              echo "export LD_LIBRARY_PATH=\$CUDA_HOME/lib64:\$LD_LIBRARY_PATH"
+            } >> ~/.bashrc
+          fi
+          
+          # Apply for current step verification
+          export CUDA_HOME=/usr/local/cuda-12.4
+          export PATH=$CUDA_HOME/bin:$PATH
+          export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$LD_LIBRARY_PATH
+
+          echo "== nvcc should be 12.4 now =="
+          which nvcc
+          nvcc --version
+
+      - name: 5. Install uv
+        run: |
+          set -euo pipefail
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          
+          # Load for verification
+          source ~/.bashrc || true
+          echo "== uv version =="
+          uv --version
+
+      - name: 6. Clone GR00T
+        run: |
+          set -euo pipefail
+          cd ~
+          # Remove if exists to allow re-run/idempotency
+          rm -rf Isaac-GR00T
+          git clone --recurse-submodules https://github.com/NVIDIA/Isaac-GR00T
+
+      - name: 7. Create env + install repo deps
+        run: |
+          set -euo pipefail
+          source ~/.bashrc || true
+          cd ~/Isaac-GR00T
+          uv sync --python 3.10
+          uv pip install -e .
+
+      - name: 8. Install PyTorch CUDA 12.4 wheels
+        run: |
+          set -euo pipefail
+          source ~/.bashrc || true
+          cd ~/Isaac-GR00T
+          uv pip install --upgrade pip
+          uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
+
+          echo "== Torch CUDA check =="
+          uv run python - <<'PY'
+          import torch
+          print("torch:", torch.__version__)
+          print("torch.version.cuda:", torch.version.cuda)
+          print("cuda available:", torch.cuda.is_available())
+          if torch.cuda.is_available():
+              print("gpu:", torch.cuda.get_device_name(0))
+          PY
+
+      - name: 9. Install flash-attn
+        run: |
+          set -euo pipefail
+          source ~/.bashrc || true
+          cd ~/Isaac-GR00T
+          
+          # For A100/H100 usually, assuming 8.0+ is safe or desired
+          export TORCH_CUDA_ARCH_LIST="8.0"
+          export MAX_JOBS="$(nproc)"
+          
+          # Ensure CUDA is in path for this step as well
+          export CUDA_HOME=/usr/local/cuda-12.4
+          export PATH=$CUDA_HOME/bin:$PATH
+          export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$LD_LIBRARY_PATH
+
+          uv pip install ninja packaging
+          uv pip install flash-attn --no-build-isolation --no-cache-dir
+
+          echo "== flash-attn import check =="
+          uv run python - <<'PY'
+          import flash_attn
+          print("flash_attn OK:", flash_attn.__version__)
+          PY
+
+      - name: Setup complete message
+        run: |
+          echo "== Setup complete. =="
+          echo "Repo at: ~/Isaac-GR00T"
+
 
       - name: Exit VM
         run: exit
