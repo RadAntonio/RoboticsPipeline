@@ -70,7 +70,7 @@ jobs:
           source ~/.bashrc || true;
           echo == uv version ==;
           uv --version;
-        "
+          "
 
       - name: Step 6 - Clone GR00T
         run: ssh -F ~/.brev/ssh_config test1-pipeline "cd ~;
@@ -87,7 +87,8 @@ jobs:
           uv pip install --upgrade pip;
           uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124;
           echo == Torch CUDA check ==;
-          uv run python -c 'import torch; print(\"torch:\", torch.__version__); print(\"cuda available:\", torch.cuda.is_available())'"
+          uv run python -c 'import torch; print(\"torch:\", torch.__version__); print(\"cuda available:\", torch.cuda.is_available())'
+          "
 
       - name: Step 9 - Install flash-attn
         run: |
