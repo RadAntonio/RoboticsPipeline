@@ -34,7 +34,7 @@ jobs:
         run: echo $HOSTNAME_BREV
 
       - name: connect to brev
-        run: ssh -F ~/.brev/ssh_config -o StrictHostKeyChecking=no ubuntu@$HOSTNAME_BREV "ls -a"
+        run: ssh -F ~/.brev/ssh_config test1-pipeline "ls -a"
 
       - name: show os
         run: lsb_release -a
