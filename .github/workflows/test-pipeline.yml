@@ -34,8 +34,10 @@ jobs:
         run: echo $HOSTNAME_BREV
 
       - name: connect to brev
-        run: ssh -F ~/.brev/ssh_config test1-pipeline "lsb_release -a"
-
-      - name: show os
-        run: lsb_release -a
+        run: ssh -F ~/.brev/ssh_config test1-pipeline "echo == OS ==;
+          . /etc/os-release;
+          echo \$PRETTY_NAME\;
+          echo == GPU / Driver (must work) ==;
+          nvidia-smi
+          "
         
