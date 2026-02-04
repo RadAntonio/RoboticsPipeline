@@ -17,6 +17,9 @@ jobs:
       - name: Login to Brev
         run: echo "No" | brev login --token ${{ secrets.BREV_TOKEN }} --skip-browser
 
+      - name: enter with shell
+        run: brev shell test1-pipeline
+
       - name: Show .brev folder
         run: cd $HOME/.brev && ls -la
         
