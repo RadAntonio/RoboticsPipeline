@@ -1,18 +1,20 @@
-name: My Workflow
+name: Test Brev Connection
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-  workflow_dispatch:  # Allows manual trigger
+  workflow_dispatch:
 
 jobs:
-  build:
+  test-brev-connection:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Run a command
-        run: echo "Hello from GitHub Actions!"
+      - name: Install BREV CLI
+        run: |
+          sudo apt-get update && sudo apt-get install -y python3 curl
+          sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/brevdev/brev-cli/main/bin/install-latest.sh)"
+          echo "No" | brev login --token ${{ secrets.BREV_TOKEN }} --skip-browser
+          brev start test-pipeline
+          cd $HOME
+          ls -a
+          cd .brev
+          ls -a
+          cat ssh_config
