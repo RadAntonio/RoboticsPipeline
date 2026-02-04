@@ -119,7 +119,7 @@ jobs:
 
       - name: Step 11 - Download GR00T model
         run: ssh -F ~/.brev/ssh_config test1-pipeline "cd ~/Isaac-GR00T;
-          ~/.local/bin/uv run huggingface-cli download nvidia/GR00T-N1.6-3B;
+          ~/.local/bin/uv run hf download nvidia/GR00T-N1.6-3B;
           "
 
       - name: Step 12 - Clone Modality Files Repo
@@ -132,15 +132,15 @@ jobs:
 
       #CHESTII CARE DEPIND DE CEVA
       - name: Step 13 - Download Dataset
-        run: ssh -F ~/.brev/ssh_config test1-pipeline "cd ~;
-          ~/.local/bin/uv run hf download VoicAndrei/so100_test_blocks --repo-type dataset --local-dir ~/datasets/so100_test_blocks;
+        run: ssh -F ~/.brev/ssh_config test1-pipeline "cd ~/Isaac-GR00T;
+          ~/.local/bin/uv run hf download VoicAndrei/so100_test_blocks --repo-type dataset --local-dir ./hf_datasets/so100_test_blocks;
           "
       - name: Step 14 - Run finetune
         run: ssh -F ~/.brev/ssh_config test1-pipeline "cd ~/Isaac-GR00T;
           export NUM_GPUS=1;
           CUDA_VISIBLE_DEVICES=0 ~/.local/bin/uv run python gr00t/experiment/launch_finetune.py \
             --base_model_path nvidia/GR00T-N1.6-3B \
-            --dataset_path ~/datasets/so100_test_blocks \
+            --dataset_path ./hf_datasets/so100_test_blocks \
             --modality_config_path ~/modality_files/so100_top_wrist_config.py \
             --embodiment_tag NEW_EMBODIMENT \
             --num_gpus \$NUM_GPUS \
