@@ -30,7 +30,10 @@ jobs:
         run: echo $HOSTNAME_BREV
 
       - name: connect to brev
-        run: ssh ubuntu@$HOSTNAME_BREV "ls -a"
+        run: ssh ubuntu@136.112.15.179
+
+      - name: connect to brev
+        run: ssh ubuntu@136.112.15.179 "ls -a"
 
       - name: show os
         run: lsb_release -a
