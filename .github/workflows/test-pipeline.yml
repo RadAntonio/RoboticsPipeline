@@ -20,21 +20,6 @@ jobs:
       - name: Start instance
         run: brev start test-pipeline
 
-      - name: Wait for instance
-        run: |
-          i=0
-          while [ $i -lt 60 ]; do
-            i=$((i + 1))
-            STATUS=$(brev ls | grep test-pipeline | awk '{print $2}')
-            SHELL_STATUS=$(brev ls | grep test-pipeline | awk '{print $4}')
-            echo "Attempt $i/60: STATUS=$STATUS, SHELL=$SHELL_STATUS"
-            if [ "$STATUS" = "RUNNING" ] && [ "$SHELL_STATUS" = "READY" ]; then
-              echo "Instance is ready!"
-              break
-            fi
-            sleep 10
-          done
-
       - name: Enter the VM
         run: brev shell test-pipeline
 
