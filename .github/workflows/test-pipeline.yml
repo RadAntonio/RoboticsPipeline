@@ -18,18 +18,16 @@ jobs:
         run: echo "No" | brev login --token ${{ secrets.BREV_TOKEN }} --skip-browser
 
       - name: Start instance
-        run: brev start test-pipeline
+        run: brev start test1-pipeline
 
       - name: Enter the VM
-        run: brev shell test-pipeline
+        run: brev shell test1-pipeline
 
       - name: Try commands in VM
-        run: |
-          whoami
-          ls -a
+        run: ls -a
 
       - name: Exit VM
         run: exit
 
       - name: Stop instance
-        run: brev stop test-pipeline
+        run: brev stop test1-pipeline
