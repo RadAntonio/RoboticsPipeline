@@ -17,18 +17,6 @@ jobs:
       - name: Login to Brev
         run: echo "No" | brev login --token ${{ secrets.BREV_TOKEN }} --skip-browser
 
-      - name: Enter the VM
-        run: |
-          brev shell test1-pipeline
-          set -euo pipefail
-          echo "== OS =="
-          . /etc/os-release
-          echo "$PRETTY_NAME"
-          echo "== GPU / Driver (must work) =="
-          nvidia-smi
-
-      - name: Exit VM
-        run: exit
-
-      - name: Stop instance
-        run: brev stop test1-pipeline
+      - name: Show .brev folder
+        run: cd $HOME/.brev && ls -la
+        
