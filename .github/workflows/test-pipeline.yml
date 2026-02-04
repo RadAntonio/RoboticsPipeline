@@ -116,4 +116,44 @@ jobs:
           export HF_HUB_ENABLE_HF_TRANSFER=1;
           ~/.local/bin/uv run hf auth whoami;
           "
-          
+
+      - name: Step 11 - Download GR00T model
+        run: ssh -F ~/.brev/ssh_config test1-pipeline "cd ~/Isaac-GR00T;
+          ~/.local/bin/uv run huggingface-cli download nvidia/GR00T-N1.6-3B;
+          "
+
+      - name: Step 12 - Clone Modality Files Repo
+        run: ssh -F ~/.brev/ssh_config test1-pipeline "cd ~;
+          if [ ! -d modality_files ]; then
+          git clone https://huggingface.co/datasets/VoicAndrei/modality_files;
+          else
+          cd modality_files && git pull;
+          fi;"
+
+      #CHESTII CARE DEPIND DE CEVA
+      - name: Step 13 - Download Dataset
+        run: ssh -F ~/.brev/ssh_config test1-pipeline "cd ~;
+          ~/.local/bin/uv run hf download VoicAndrei/so100_test_blocks --repo-type dataset --local-dir ~/datasets/so100_test_blocks;
+          "
+      - name: Step 14 - Run finetune
+        run: ssh -F ~/.brev/ssh_config test1-pipeline "cd ~/Isaac-GR00T;
+          export NUM_GPUS=1;
+          CUDA_VISIBLE_DEVICES=0 ~/.local/bin/uv run python gr00t/experiment/launch_finetune.py \
+            --base_model_path nvidia/GR00T-N1.6-3B \
+            --dataset_path ~/datasets/so100_test_blocks \
+            --modality_config_path ~/modality_files/so100_top_wrist_config.py \
+            --embodiment_tag NEW_EMBODIMENT \
+            --num_gpus \$NUM_GPUS \
+            --output_dir /tmp/so100_top_wrist_finetune \
+            --save_steps 1000 \
+            --save_total_limit 5 \
+            --max_steps 10000 \
+            --warmup_ratio 0.05 \
+            --weight_decay 1e-5 \
+            --learning_rate 1e-4 \
+            --global_batch_size 32 \
+            --color_jitter_params brightness 0.3 contrast 0.4 saturation 0.5 hue 0.08 \
+            --dataloader_num_workers 4;
+          "
+
+      
