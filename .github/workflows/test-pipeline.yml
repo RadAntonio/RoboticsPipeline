@@ -68,7 +68,10 @@ jobs:
           "
       - name: Step 5 - Install uv
         run: ssh -F ~/.brev/ssh_config test1-pipeline "curl -LsSf https://astral.sh/uv/install.sh | sh;
+          echo 'export PATH=\$HOME/.local/bin:\$PATH' >> ~/.bashrc;
+          echo 'export PATH=\$HOME/.local/bin:\$PATH' >> ~/.bash_profile;
           source ~/.bashrc || true;
+          source ~/.bash_profile || true;
           echo == uv version ==;
           uv --version;
           "
@@ -81,7 +84,7 @@ jobs:
             cd Isaac-GR00T && git pull;
           fi;
           "
-          
+
       - name: Step 7 - Create env + install repo deps
         run: ssh -F ~/.brev/ssh_config test1-pipeline "cd Isaac-GR00T;
           uv sync --python 3.10;
