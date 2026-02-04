@@ -38,5 +38,8 @@ jobs:
       - name: Enter the VM
         run: brev shell test-pipeline
 
+      - name: Exit VM
+        run: exit
+
       - name: Stop instance
         run: brev stop test-pipeline
