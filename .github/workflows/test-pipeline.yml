@@ -52,12 +52,12 @@ jobs:
         run: ssh -F ~/.brev/ssh_config test1-pipeline "echo == PATH ==; 
           if ! grep -q \"cuda-12.4\" ~/.bashrc; then
           {
-            echo \"\"
-            echo \"# CUDA 12.4 (for GR00T + flash-attn)\"
-            echo \"export CUDA_HOME=/usr/local/cuda-12.4\"
-            echo \"export PATH=\$CUDA_HOME/bin:\$PATH\"
-            echo \"export LD_LIBRARY_PATH=\$CUDA_HOME/lib64:\$LD_LIBRARY_PATH\"
-          } >> ~/.bashrc
+            echo \"\";
+            echo \"# CUDA 12.4 (for GR00T + flash-attn)\";
+            echo \"export CUDA_HOME=/usr/local/cuda-12.4\";
+            echo \"export PATH=\$CUDA_HOME/bin:\$PATH\";
+            echo \"export LD_LIBRARY_PATH=\$CUDA_HOME/lib64:\$LD_LIBRARY_PATH\";
+          } >> ~/.bashrc;
           fi;
           export CUDA_HOME=/usr/local/cuda-12.4;
           export PATH=\$CUDA_HOME/bin:\$PATH;
@@ -75,9 +75,13 @@ jobs:
 
       - name: Step 6 - Clone GR00T
         run: ssh -F ~/.brev/ssh_config test1-pipeline "cd ~;
-          git clone --recurse-submodules https://github.com/NVIDIA/Isaac-GR00T;
-          cd Isaac-GR00T;
+          if [ ! -d Isaac-GR00T ]; then
+            git clone --recurse-submodules https://github.com/NVIDIA/Isaac-GR00T;
+          else
+            cd Isaac-GR00T && git pull;
+          fi;
           "
+          
       - name: Step 7 - Create env + install repo deps
         run: ssh -F ~/.brev/ssh_config test1-pipeline "cd Isaac-GR00T;
           uv sync --python 3.10;
