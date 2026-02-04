@@ -26,14 +26,15 @@ jobs:
           HOSTNAME_BREV=$(grep "Hostname" ~/.brev/ssh_config | head -1 | awk '{print $2}')
           echo "HOSTNAME_BREV=$HOSTNAME_BREV" >> $GITHUB_ENV
 
+      - name: Show ssh config
+        run: |
+          cd $HOME/.brev && cat ssh_config
+
       - name: Show hostname
         run: echo $HOSTNAME_BREV
 
       - name: connect to brev
-        run: ssh ubuntu@136.112.15.179
-
-      - name: connect to brev
-        run: ssh ubuntu@136.112.15.179 "ls -a"
+        run: ssh -F ~/.brev/ssh_config -o StrictHostKeyChecking=no ubuntu@$HOSTNAME_BREV "ls -a"
 
       - name: show os
         run: lsb_release -a
