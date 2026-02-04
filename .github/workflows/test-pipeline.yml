@@ -23,6 +23,11 @@ jobs:
       - name: Enter the VM
         run: brev shell test-pipeline
 
+      - name: Try commands in VM
+        run: |
+          whoami
+          ls -a
+
       - name: Exit VM
         run: exit
 
