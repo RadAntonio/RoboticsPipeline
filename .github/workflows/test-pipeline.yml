@@ -106,3 +106,14 @@ jobs:
           ~/.local/bin/uv run python -c 'import flash_attn; print(\"flash_attn OK:\", flash_attn.__version__)';
           echo == Setup complete. ==;
           "
+
+      - name: Step 10 - Install Huggingface
+        run: ssh -F ~/.brev/ssh_config test1-pipeline "cd ~/Isaac-GR00T;
+          ~/.local/bin/uv pip install huggingface-hub hf_transfer;
+          echo 'export HF_TOKEN=\"${{ secrets.HF_TOKEN }}\"' >> ~/.bashrc;
+          echo 'export HF_HUB_ENABLE_HF_TRANSFER=1' >> ~/.bashrc;
+          export HF_TOKEN=\"${{ secrets.HF_TOKEN }}\";
+          export HF_HUB_ENABLE_HF_TRANSFER=1;
+          ~/.local/bin/uv run huggingface-cli whoami;
+          "
+          
