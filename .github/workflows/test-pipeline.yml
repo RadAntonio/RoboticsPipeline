@@ -114,6 +114,6 @@ jobs:
           echo 'export HF_HUB_ENABLE_HF_TRANSFER=1' >> ~/.bashrc;
           export HF_TOKEN=\"${{ secrets.HF_TOKEN }}\";
           export HF_HUB_ENABLE_HF_TRANSFER=1;
-          ~/.local/bin/uv run huggingface-cli whoami;
+          ~/.local/bin/uv run hf auth whoami;
           "
           
