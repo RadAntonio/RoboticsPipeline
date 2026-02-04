@@ -17,27 +17,95 @@ jobs:
       - name: Login to Brev
         run: echo "No" | brev login --token ${{ secrets.BREV_TOKEN }} --skip-browser
 
-      - name: enter with shell
+      - name: Enter Brev with shell to create ssh config
         run: brev shell test1-pipeline
 
-      - name: Show .brev folder
-        run: |
-          cd $HOME/.brev && ls -la
-          HOSTNAME_BREV=$(grep "Hostname" ~/.brev/ssh_config | head -1 | awk '{print $2}')
-          echo "HOSTNAME_BREV=$HOSTNAME_BREV" >> $GITHUB_ENV
-
-      - name: Show ssh config
-        run: |
-          cd $HOME/.brev && cat ssh_config
-
-      - name: Show hostname
-        run: echo $HOSTNAME_BREV
-
-      - name: connect to brev
+      - name: Step 0 - Basic sanity checks
         run: ssh -F ~/.brev/ssh_config test1-pipeline "echo == OS ==;
           . /etc/os-release;
           echo \$PRETTY_NAME\;
           echo == GPU / Driver ==;
           nvidia-smi
           "
+
+      - name: Step 1 - System dependencies
+        run: ssh -F ~/.brev/ssh_config test1-pipeline "sudo apt-get update; 
+          sudo apt-get install -y git curl wget gnupg ca-certificates build-essential python3-dev ninja-build cmake pkg-config"
+
+      - name: Step 2 - Remove Ubuntu's nvidia-cuda-toolkit
+        run: ssh -F ~/.brev/ssh_config test1-pipeline "sudo apt-get purge -y nvidia-cuda-toolkit || true;
+          sudo apt-get autoremove -y || true"
+
+      - name: Step 3 - Install NVIDIA CUDA Toolkit 12.4
+        run: ssh -F ~/.brev/ssh_config test1-pipeline "sudo apt-get update;
+          UBU_VER="${VERSION_ID//./}";
+          CUDA_REPO_URL=https://developer.download.nvidia.com/compute/cuda/repos/ubuntu${UBU_VER}/x86_64/cuda-keyring_1.1-1_all.deb;
+          echo == Installing CUDA repo keyring from $CUDA_REPO_URL ==;
+          wget -q $CUDA_REPO_URL -O /tmp/cuda-keyring.deb;
+          sudo dpkg -i /tmp/cuda-keyring.deb;
+          sudo apt-get update;
+          echo == Installing CUDA toolkit 12.4 ==;
+          sudo apt-get install -y cuda-toolkit-12-4;
+          "  
+      - name: Step 4 - Make sure we use CUDA 12.4 in PATH
+        run: ssh -F ~/.brev/ssh_config test1-pipeline "echo == PATH ==; 
+          if ! grep -q \"cuda-12.4\" ~/.bashrc; then
+          {
+            echo \"\"
+            echo \"# CUDA 12.4 (for GR00T + flash-attn)\"
+            echo \"export CUDA_HOME=/usr/local/cuda-12.4\"
+            echo \"export PATH=\$CUDA_HOME/bin:\$PATH\"
+            echo \"export LD_LIBRARY_PATH=\$CUDA_HOME/lib64:\$LD_LIBRARY_PATH\"
+          } >> ~/.bashrc
+          fi;
+          export CUDA_HOME=/usr/local/cuda-12.4;
+          export PATH=\$CUDA_HOME/bin:\$PATH;
+          export LD_LIBRARY_PATH=\$CUDA_HOME/lib64:\$LD_LIBRARY_PATH;
+          echo == nvcc should be 12.4 now ==;
+          which nvcc;
+          nvcc --version;
+          "
+      - name: Step 5 - Install uv
+        run: ssh -F ~/.brev/ssh_config test1-pipeline "curl -LsSf https://astral.sh/uv/install.sh | sh;
+          source ~/.bashrc || true;
+          echo == uv version ==;
+          uv --version;
+        "
+
+      - name: Step 6 - Clone GR00T
+        run: ssh -F ~/.brev/ssh_config test1-pipeline "cd ~;
+          git clone --recurse-submodules https://github.com/NVIDIA/Isaac-GR00T;
+          cd Isaac-GR00T;
+          "
+      - name: Step 7 - Create env + install repo deps
+        run: ssh -F ~/.brev/ssh_config test1-pipeline "cd Isaac-GR00T;
+          uv sync --python 3.10;
+          uv pip install -e .; 
+          "
+      - name: Step 8 - Install PyTorch CUDA 12.4 wheels (cu124)
+        run: ssh -F ~/.brev/ssh_config test1-pipeline "cd Isaac-GR00T;
+          uv pip install --upgrade pip;
+          uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124;
+          echo == Torch CUDA check ==;
+          uv run python -c 'import torch; print(\"torch:\", torch.__version__); print(\"cuda available:\", torch.cuda.is_available())'"
+
+      - name: Step 9 - Install flash-attn
+        run: |
+          ssh -F ~/.brev/ssh_config test1-pipeline "
+          export TORCH_CUDA_ARCH_LIST=\"8.0\";
+          export MAX_JOBS=\$(nproc);
+          uv pip install ninja packaging;
+          uv pip install flash-attn --no-build-isolation --no-cache-dir;
+          echo == flash-attn import check ==;
+          uv run python -c 'import flash_attn; print(\"flash_attn OK:\", flash_attn.__version__)\';
+          echo == Setup complete. ==;
+          echo Repo at: ~/Isaac-GR00T;
+          echo Next: run a finetune command;
+          "
+        
+        
+        
+        
+          
+        
         
