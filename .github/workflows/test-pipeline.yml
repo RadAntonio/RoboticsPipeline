@@ -1,20 +1,42 @@
-name: Test Brev Connection
+name: Brev Connection Test
 
 on:
-  workflow_dispatch:
+  workflow_dispatch:  # Manual trigger only
 
 jobs:
-  test-brev-connection:
+  test-brev:
     runs-on: ubuntu-latest
     steps:
-      - name: Install BREV CLI
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Brev CLI
         run: |
-          sudo apt-get update && sudo apt-get install -y python3 curl
           sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/brevdev/brev-cli/main/bin/install-latest.sh)"
-          echo "No" | brev login --token ${{ secrets.BREV_TOKEN }} --skip-browser
-          brev start test-pipeline
-          cd $HOME
-          ls -a
-          cd .brev
-          ls -a
-          cat ssh_config
+
+      - name: Login to Brev
+        run: echo "No" | brev login --token ${{ secrets.BREV_TOKEN }} --skip-browser
+
+      - name: Start instance
+        run: brev start test-pipeline
+
+      - name: Wait for instance
+        run: |
+          i=0
+          while [ $i -lt 60 ]; do
+            i=$((i + 1))
+            STATUS=$(brev ls | grep test-pipeline | awk '{print $2}')
+            SHELL_STATUS=$(brev ls | grep test-pipeline | awk '{print $4}')
+            echo "Attempt $i/60: STATUS=$STATUS, SHELL=$SHELL_STATUS"
+            if [ "$STATUS" = "RUNNING" ] && [ "$SHELL_STATUS" = "READY" ]; then
+              echo "Instance is ready!"
+              break
+            fi
+            sleep 10
+          done
+
+      - name: Enter the VM
+        run: brev shell test-pipeline
+
+      - name: Stop instance
+        run: brev stop test-pipeline
